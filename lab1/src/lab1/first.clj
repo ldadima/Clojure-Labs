@@ -1,4 +1,4 @@
-(ns lab1.core)
+(ns lab1.first)
 
 (defn add-alf [word alf]
   (if (> (count alf) 0)
