@@ -4,8 +4,8 @@
   (loop [w word
          a alf
          res '()]
-    (if (> (count a) 0)
-      (if (some #{(first a)} w)
+    (if (not (empty? a))
+      (if (= (first a) (first w))
         (recur w (rest a) res)
         (recur w (rest a) (cons (cons (first a) w) res))
         )
@@ -24,13 +24,10 @@
   )
 
 (defn write-words [n symbols]
-  (if (> n 0)
-    (loop [cnt n ss symbols res (add-alf '() ss)]
-      (if (> cnt 1)
-        (recur (dec cnt) ss (add-words res ss))
-        res
-        )
+  (loop [cnt n ss symbols res '(())]
+    (if (> cnt 0)
+      (recur (dec cnt) ss (add-words res ss))
+      res
       )
-    '()
     )
   )

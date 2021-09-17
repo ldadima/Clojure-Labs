@@ -1,9 +1,9 @@
 (ns lab1.third)
 
-(defn my-map [fn list]
+(defn my-map [fun list]
   (if (empty? list)
     ()
-    (cons (fn (first list)) (my-map fn (rest list))))
+    (cons (fun (first list)) (my-map fun (rest list))))
   )
 
 ;(defn my-map [fun list]
@@ -24,7 +24,7 @@
 ;  )
 
 (defn add-alf [word alf]
-  (my-map #(cons % word) (my-filter #(not (some #{%} word)) alf))
+  (my-map #(cons % word) (my-filter #(not (= % (first word))) alf))
   )
 
 (defn add-words [words alf]
@@ -33,12 +33,9 @@
 
 (defn write-words [n symbols]
   (if (> n 0)
-    (if (> n 1)
-      (let [beginWords (add-alf '() symbols)]
-        (reduce (fn [words num] (add-words words symbols)) beginWords (range 1 n))
-        )
-      (add-alf '() symbols)
+    (let [beginWords (add-alf '() symbols)]
+      (reduce (fn [words num] (add-words words symbols)) beginWords (range 1 n))
       )
-    '()
+    '(())
     )
   )
