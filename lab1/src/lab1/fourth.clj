@@ -9,10 +9,5 @@
   )
 
 (defn write-words [n symbols]
-  (if (> n 0)
-    (let [beginWords (add-alf '() symbols)]
-      (reduce (fn [words num] (add-words words symbols)) beginWords (range 1 n))
-      )
-    '(())
-    )
+  (reduce (fn [words num] (add-words words symbols)) '(()) (range 1 (inc n)))
   )

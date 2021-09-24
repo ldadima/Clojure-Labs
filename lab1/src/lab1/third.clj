@@ -1,9 +1,12 @@
 (ns lab1.third)
 
 (defn my-map [fun list]
-  (if (empty? list)
-    ()
-    (cons (fun (first list)) (my-map fun (rest list))))
+  (loop [list list acc []]
+    (if (empty? list)
+      acc
+      (recur (rest list) (conj acc (fun (first list))))
+      )
+    )
   )
 
 ;(defn my-map [fun list]
@@ -11,13 +14,16 @@
 ;  )
 
 (defn my-filter [test list]
-  (if (empty? list)
-    ()
-    (if (test (first list))
-      (cons (first list) (my-filter test (rest list)))
-      (my-filter test (rest list))
+  (loop [list list acc []]
+    (if (empty? list)
+      acc
+      (if (test (first list))
+        (recur (rest list) (conj acc (first list) ))
+        (recur (rest list) acc)
+        )
       )
-    ))
+    )
+  )
 
 ;(defn my-filter [test list]
 ;  (reduce (fn [acc elem] (if (test elem) (cons elem acc) acc)) () list)
@@ -32,10 +38,5 @@
   )
 
 (defn write-words [n symbols]
-  (if (> n 0)
-    (let [beginWords (add-alf '() symbols)]
-      (reduce (fn [words num] (add-words words symbols)) beginWords (range 1 n))
-      )
-    '(())
-    )
+  (reduce (fn [words num] (add-words words symbols)) '([]) (range 1 (inc n)))
   )
