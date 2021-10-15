@@ -20,10 +20,10 @@
 (defn test-fun [x step]
   (let [fun3x (fn [] (integral (fn [x] (* 3 x))))]
     (time ((fun3x) x step))
-    (time ((fun3x) x (/ step 2)))
-    (time ((fun3x) x (/ step 4)))
+    (time ((fun3x) (+ x 50) step))
+    (time ((fun3x) (+ x 100) step))
     (time ((fun3x) x step))
-    (time ((fun3x) x (/ step 2)))
-    (time ((fun3x) x (/ step 4)))
+    (time ((fun3x) (+ x 50) step))
+    (time ((fun3x) (+ x 100) step))
     )
   )

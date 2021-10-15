@@ -1,12 +1,38 @@
 (ns lab2.second)
 
-(defn integral [fun]
-  (fn [x]
-    (loop [beg 0 step (/ x 10000) acc 0]
-      (if (= beg x)
-        acc
-        (recur (+ beg step) step (+ (* step (/ (+ (fun beg) (fun (+ beg step))) 2)) acc))
-        )
+(defn- square [func beg step]
+  (* step (/ (+ (func beg) (func (+ beg step))) 2))
+  )
+
+(defn integral [func step]
+  (let [
+        inner-fun (fn integral-fun
+                    ([step] (integral-fun 0 step))
+                    ([beg step]
+                     (cons (square func beg step)
+                           (lazy-seq (integral-fun (+ beg step) step))
+                           )
+                     )
+                    )
+        inner (reductions + (inner-fun step))
+        ]
+    (fn [x]
+      (if (> x 0) (nth inner (- (/ x step) 1)) 0)
       )
+    )
+  )
+
+(defn test-fun [x step]
+  (let [fun3x (fn [] (integral (fn [x] (* 3 x)) step))]
+    (time ((fun3x) x))
+    (time ((fun3x) x))
+    (time ((fun3x) x))
+    (time ((fun3x) x))
+    (time ((fun3x) x))
+    ;(time ((fun3x) (+ x 50) step))
+    ;(time ((fun3x) (+ x 100) step))
+    ;(time ((fun3x) x step))
+    ;(time ((fun3x) (+ x 50) step))
+    ;(time ((fun3x) (+ x 100) step))
     )
   )
