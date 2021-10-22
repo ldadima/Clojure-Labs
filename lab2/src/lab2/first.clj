@@ -14,16 +14,17 @@
                              )
                            )
         inner-fun (partial inner-fun inner-fun)]
-    (fn [x step] (inner-fun 0 x step)))
+    (fn [x step] (inner-fun 0 x step))
+    )
   )
 
 (defn test-fun [x step]
-  (let [fun3x (fn [] (integral (fn [x] (* 3 x))))]
-    (time ((fun3x) x step))
-    (time ((fun3x) (+ x 50) step))
-    (time ((fun3x) (+ x 100) step))
-    (time ((fun3x) x step))
-    (time ((fun3x) (+ x 50) step))
-    (time ((fun3x) (+ x 100) step))
+  (let [fun3x (integral (fn [x] (* 3 x)))]
+    (time (fun3x x step))
+    (time (fun3x x step))
+    (time (fun3x x step))
+    (time (fun3x x step))
+    (time (fun3x x step))
+    (time (fun3x x step))
     )
   )
