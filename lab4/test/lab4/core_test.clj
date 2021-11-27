@@ -9,6 +9,7 @@
         res (to-dnf test-expr)
         should "(!a & d)"]
     (is (= should (view res)))
+    (is (true? (compare-exprs test-expr res)))
     )
   )
 
@@ -17,6 +18,7 @@
         res (to-dnf test-expr)
         should "x"]
     (is (= should (view res)))
+    (is (true? (compare-exprs test-expr res)))
     )
   )
 
@@ -25,6 +27,7 @@
         res (to-dnf test-expr)
         should "x"]
     (is (= should (view res)))
+    (is (true? (compare-exprs test-expr res)))
     )
   )
 
@@ -33,6 +36,7 @@
         res (to-dnf test-expr)
         should "(x & y)"]
     (is (= should (view res)))
+    (is (true? (compare-exprs test-expr res)))
     )
   )
 
@@ -41,21 +45,33 @@
         res (to-dnf test-expr)
         should "(x | y)"]
     (is (= should (view res)))
+    (is (true? (compare-exprs test-expr res)))
     )
   )
 
 (deftest dnf-easy6-test
-  (let [test-expr (c-impl (c-equal (c-var "b") (c-var "a")) (c-var "b"))
+  (let [test-expr (c-and (c-not (c-var "x")) (c-or (c-var "x") (c-var "y")))
         res (to-dnf test-expr)
-        should "(((b & !a) | (a & !b)) | b)"]
+        should "(!x & y)"]
     (is (= should (view res)))
+    (is (true? (compare-exprs test-expr res)))
+    )
+  )
+
+(deftest dnf-easy7-test
+  (let [test-expr (c-or (c-not (c-var "x")) (c-and (c-var "x") (c-var "y")))
+        res (to-dnf test-expr)
+        should "(!x | y)"]
+    (is (= should (view res)))
+    (is (true? (compare-exprs test-expr res)))
     )
   )
 
 (deftest dnf-complex-test
   (let [test-expr (c-and (c-impl (c-not (c-or (c-var "a") (c-not (c-var "k")))) (c-var "b")) (c-equal (c-var "c") (c-var "d")))
         res (to-dnf test-expr)
-        should "((((a & (!c & !d)) | (a & (c & d))) | ((!k & (!c & !d)) | (!k & (c & d)))) | ((b & (!c & !d)) | (b & (c & d))))"]
+        should "((a & !d & !c) | (b & d & c) | (b & !d & !c) | (!k & d & c) | (!k & !d & !c) | (a & d & c))"]
     (is (= should (view res)))
+    (is (true? (compare-exprs test-expr res)))
     )
   )

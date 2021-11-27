@@ -158,7 +158,7 @@
   (if (empty? expr)
     ()
     (let [f (first expr) r (rest expr)]
-      (if (= f ::and) ; (a | b) & c = (a & c) | (b & c) or a & (b | c) = (a & b) | (a & c)
+      (if (= f ::and)                                       ; (a | b) & c = (a & c) | (b & c) or a & (b | c) = (a & b) | (a & c)
         (let [pos-ab (pos-count r) ab (take pos-ab r) without-ab (drop pos-ab r)
               pos-bc (pos-count without-ab) bc (take pos-bc without-ab) rr (drop pos-bc without-ab)]
           (cond
@@ -193,20 +193,31 @@
    )
   )
 
-(def check-v #{::or ::and ::impl ::equal})
+(defn get-args [expr oper-sym]
+  (if (empty? expr)
+    ()
+    (if (= oper-sym (first expr))
+      (let [r (rest expr) pos-right (pos-count r) right (get-args (take pos-right r) oper-sym) without-right (drop pos-right r)
+            pos-left (pos-count without-right) left (get-args (take pos-left without-right) oper-sym)]
+        (concat right left)
+        )
+      (cons expr '())
+      )
+    )
+  )
+
+(def check-v #{::not ::or ::and ::impl ::equal})
 
 (defn view [expr]
   (if (empty? expr)
     ()
     (let [first-symbol (first expr) r (rest expr)]
       (cond
-        (= ::and first-symbol) (let [pos-right (pos-count r) right (take pos-right r) without-right (drop pos-right r)
-                                     pos-left (pos-count without-right) left (take pos-left without-right)]
-                                 (str "(" (view right) " & " (view left) ")")
+        (= ::and first-symbol) (let [args (get-args expr ::and)]
+                                 (str "(" (str (reduce #(str %1 " & " (view %2)) (view (first args)) (rest args))) ")")
                                  )
-        (= ::or first-symbol) (let [pos-right (pos-count r) right (take pos-right r) without-right (drop pos-right r)
-                                    pos-left (pos-count without-right) left (take pos-left without-right)]
-                                (str "(" (view right) " | " (view left) ")")
+        (= ::or first-symbol) (let [args (get-args expr ::or)]
+                                (str "(" (str (reduce #(str %1 " | " (view %2)) (view (first args)) (rest args))) ")")
                                 )
         (= ::impl first-symbol) (let [pos-right (pos-count r) right (take pos-right r) without-right (drop pos-right r)
                                       pos-left (pos-count without-right) left (take pos-left without-right)]
@@ -236,9 +247,9 @@
                                     pos-left (pos-count without-right) left (inner-eval (take pos-left without-right))]
                                 (cond
                                   (and (c-const? right) (c-const? left)) (c-const (or (c-const-bool right) (c-const-bool left)))
+                                  (= right left) right
                                   (c-const? right) (if (c-const-bool right) right left)
                                   (c-const? left) (if (c-const-bool left) left right)
-                                  (= right left) right
                                   (and (= ::not (first right)) (= (rest right) left)) (c-const true)
                                   (and (= ::not (first left)) (= (rest left) right)) (c-const true)
                                   (= ::and (first left)) (let [pos-lright (pos-count (rest left)) lright (inner-eval (take pos-lright (rest left))) without-lright (drop pos-lright (rest left))
@@ -248,6 +259,8 @@
                                                              (= lleft right) lleft
                                                              (and (= ::not (first lright)) (= (rest lright) right)) (c-or right lleft)
                                                              (and (= ::not (first lleft)) (= (rest lleft) right)) (c-or right lright)
+                                                             (and (= ::not (first right)) (= (rest right) lright)) (c-or right lleft)
+                                                             (and (= ::not (first right)) (= (rest right) lleft)) (c-or right lright)
                                                              :else (c-or right left)
                                                              )
                                                            )
@@ -258,19 +271,21 @@
                                                               (= rleft left) rleft
                                                               (and (= ::not (first rright)) (= (rest rright) left)) (c-or left rleft)
                                                               (and (= ::not (first rleft)) (= (rest rleft) left)) (c-or left rright)
+                                                              (and (= ::not (first left)) (= (rest left) rright)) (c-or left rleft)
+                                                              (and (= ::not (first left)) (= (rest left) rleft)) (c-or left rright)
                                                               :else (c-or right left)
                                                               )
                                                             )
                                   :else (c-or right left)
                                   )
                                 )
-        (= ::and first-symbol) (let [pos-right (pos-count r) right (take pos-right r) without-right (drop pos-right r)
-                                     pos-left (pos-count without-right) left (take pos-left without-right)]
+        (= ::and first-symbol) (let [pos-right (pos-count r) right (inner-eval (take pos-right r)) without-right (drop pos-right r)
+                                     pos-left (pos-count without-right) left (inner-eval (take pos-left without-right))]
                                  (cond
                                    (and (c-const? right) (c-const? left)) (c-const (and (c-const-bool right) (c-const-bool left)))
+                                   (= right left) right
                                    (c-const? right) (if (c-const-bool right) left right)
                                    (c-const? left) (if (c-const-bool left) right left)
-                                   (= right left) right
                                    (and (= ::not (first right)) (= (rest right) left)) (c-const false)
                                    (and (= ::not (first left)) (= (rest left) right)) (c-const false)
                                    (= ::or (first left)) (let [pos-lright (pos-count (rest left)) lright (inner-eval (take pos-lright (rest left))) without-lright (drop pos-lright (rest left))
@@ -280,6 +295,8 @@
                                                              (= lleft right) lleft
                                                              (and (= ::not (first lright)) (= (rest lright) right)) (c-and right lleft)
                                                              (and (= ::not (first lleft)) (= (rest lleft) right)) (c-and right lright)
+                                                             (and (= ::not (first right)) (= (rest right) lright)) (c-and right lleft)
+                                                             (and (= ::not (first right)) (= (rest right) lleft)) (c-and right lright)
                                                              :else (c-and right left)
                                                              )
                                                            )
@@ -291,6 +308,8 @@
                                                               (= rleft left) rleft
                                                               (and (= ::not (first rright)) (= (rest rright) left)) (c-and left rleft)
                                                               (and (= ::not (first rleft)) (= (rest rleft) left)) (c-and left rright)
+                                                              (and (= ::not (first left)) (= (rest left) rright)) (c-and left rleft)
+                                                              (and (= ::not (first left)) (= (rest left) rleft)) (c-and left rright)
                                                               :else (c-and right left)
                                                               )
                                                             )
@@ -311,16 +330,61 @@
     )
   )
 
+(defn paste [operands base-oper]
+  (if (empty? (rest operands))
+    (first operands)
+    (cond
+      (= base-oper ::or) (c-or (first operands) (paste (rest operands) base-oper))
+      (= base-oper ::and) (c-and (first operands) (paste (rest operands) base-oper))
+      )
+    )
+  )
+
+(defn absorption [operands base-oper]
+  (distinct (cond
+              (empty? operands) ()
+              (= 1 (count operands)) operands
+              :else (let [old (cons base-oper (concat (first operands) (first (rest operands))))
+                          new (inner-eval old)]
+                      (if (= (count old) (count new))
+                        (concat (absorption (cons (first operands) (drop 2 operands)) base-oper) (absorption (rest operands) base-oper))
+                        (absorption (cons new (drop 2 operands)) base-oper)
+                        )
+                      )
+              ))
+  )
+
+(defn retry-absorption
+  ([operands base-oper] (retry-absorption (absorption operands base-oper) base-oper operands))
+  ([operands base-oper old-operands]
+   (if (= (set old-operands) (set operands))
+     (paste operands base-oper)
+     (retry-absorption (absorption (get-args (paste operands base-oper) base-oper) base-oper) base-oper operands)
+     )
+   )
+  )
+
+(defn extra-absorption [expr]
+  (if (empty? expr)
+    ()
+    (cond
+      (= ::or (first expr)) (retry-absorption (map #(extra-absorption %) (get-args expr ::or)) ::or)
+      (= ::and (first expr)) (retry-absorption (map #(extra-absorption %) (get-args expr ::and)) ::and)
+      :else expr
+      )
+    )
+  )
+
 (defn to-dnf [expr]
   (->> expr
-      (change-to-base-ops)
-      (remove-extra-not)
-      (inner-eval)
-      (enter-not)
-      (remove-extra-not)
-      (extra-distribution)
-      (inner-eval)
-      )
+       (change-to-base-ops)
+       (remove-extra-not)
+       (inner-eval)
+       (enter-not)
+       (remove-extra-not)
+       (extra-distribution)
+       (extra-absorption)
+       )
   )
 
 (defn init-vars [expr symbols]
@@ -361,9 +425,43 @@
   (c-eval (init-vars expr symbols))
   )
 
+(defn get-vars [expr]
+  (if (empty? expr)
+    []
+    (if (= (first expr) ::var)
+      (conj (get-vars (drop 2 expr)) (c-var-name expr))
+      (get-vars (rest expr))
+      )
+    )
+  )
+
+(defn generate-value [count-v cur]
+  (if (= count-v 1)
+    []
+    (conj (generate-value (quot count-v 2) (quot cur 2)) (= 1 (mod cur 2)))
+    )
+  )
+
+(defn generate-values [count-v]
+  (nth (iterate #(cons (generate-value count-v (count %)) %) '()) count-v)
+  )
+
+(defn generate-map-values [vars]
+  (map #(zipmap vars %) (generate-values (int (Math/pow 2 (count vars)))))
+  )
+
+(defn compare-exprs [expr1 expr2]
+  (let [vars (get-vars expr1)]
+    (reduce #(and %1 %2) true (map #(= (my-eval expr1 %) (my-eval expr2 %)) (generate-map-values vars)))
+    )
+  )
+
 (defn test-dnf [expr]
   (print "before: ")
   (println (view expr))
   (print "after: ")
-  (println (view (to-dnf expr)))
+  (let [dnf (to-dnf expr)]
+    (println (view dnf))
+    (compare-exprs expr dnf)
+    )
   )
